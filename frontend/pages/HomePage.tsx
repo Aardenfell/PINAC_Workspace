@@ -2,42 +2,25 @@ import React, { useState, useEffect, useRef } from "react";
 import { Sidebar } from "../components/Sidebar";
 import { Header } from "../components/Header";
 import { ShowHumanMessage, ShowAiMessage } from "../components/MessageViewer";
-import { StopContext } from "../components/context_file";
+import { useChatContext  } from "../components/context_file";
 import { FaRegStopCircle } from "react-icons/fa";
 import "./style/HomePage.css";
 
 // Icons
 import sendIcon from "../assets/icon/send.svg";
 
-interface HomePageProps {
-  chatHistory: JSX.Element[];
-  addMessageToChatHistory: (newMessage: JSX.Element) => void;
-  clearChatHistory: () => void;
-}
+// interface HomePageProps {
+//   chatHistory: JSX.Element[];
+//   addMessageToChatHistory: (newMessage: JSX.Element) => void;
+//   clearChatHistory: () => void;
+// }
 
-export const HomePage: React.FC<HomePageProps> = ({
-  chatHistory,
-  addMessageToChatHistory,
-  clearChatHistory,
-}) => {
-  const [welcomeBox, setWelcomeBox] = useState<JSX.Element>(
-    chatHistory.length === 0 ? (
-      <div className="welcome-text-row">
-        <div className="welcome-text">
-          Hello,
-          <br />
-          How can I help you today ?
-        </div>
-      </div>
-    ) : (
-      <></>
-    )
-  );
+export const HomePage: React.FC = () => {
   const [userInput, setUserInput] = useState<string>(""); // Declare state for input value
   const [isUserInputActive, setUserInputActive] = useState<boolean>(false); // Declare state for input value
   const [buttonsDisabled, setButtonsDisabled] = useState<boolean>(false); // For disabling send button
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [stop, setStop] = useState<boolean>(false);
+  const { state, dispatch } = useChatContext();
 
   // Handles changes in user input
   const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -60,19 +43,10 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   //
   const startNewChat = () => {
-    clearChatHistory();
+    dispatch({ type: "CLEAR_CHAT" });
     window.ipcRenderer.send("client-request-to-backend", {
       request_type: "clear-chat",
     });
-    setWelcomeBox(
-      <div className="welcome-text-row">
-        <div className="welcome-text">
-          Hello,
-          <br />
-          How can I help you today ?
-        </div>
-      </div>
-    );
     setButtonsDisabled(false);
     setUserInput("");
   };
@@ -82,24 +56,18 @@ export const HomePage: React.FC<HomePageProps> = ({
   const submit = (text: string) => {
     if (/\S/.test(userInput)) {
       setButtonsDisabled(true);
-      if (welcomeBox !== <></>) {
-        setWelcomeBox(<></>);
-      }
 
-      addMessageToChatHistory(
-        <ShowHumanMessage
-          response={text}
-        />
-      );
+      dispatch({ type: "ADD_MESSAGE", message: <ShowHumanMessage response={text} /> });
+
       const preferredModel = localStorage.getItem("preferred-model");
       window.ipcRenderer.send("client-request-to-server", {
         request_type: "user-input",
         preferred_model: preferredModel,
         user_query: text,
       });
-      addMessageToChatHistory(
-        <ShowAiMessage setButtonsDisabled={setButtonsDisabled} />
-      );
+
+      dispatch({ type: "ADD_MESSAGE", message: <ShowAiMessage setButtonsDisabled={setButtonsDisabled} /> });
+
       setUserInput("");
       if (textareaRef.current) {
         textareaRef.current.style.height = "50px"; // Reset textarea height
@@ -113,13 +81,13 @@ export const HomePage: React.FC<HomePageProps> = ({
   const scrollRef = useRef<any>(null); // Ref for empty Div to server as end of messages
 
   useEffect(() => {
-    if (chatHistory.length) {
+    if (state.chatHistory.length) {
       scrollRef.current?.scrollIntoView({
         behavior: "smooth",
         block: "end",
       });
     }
-  }, [chatHistory.length]);
+  }, [state.chatHistory.length]);
 
   useEffect(() => {
     const handleKeyup = (e: KeyboardEvent) => {
@@ -172,13 +140,20 @@ export const HomePage: React.FC<HomePageProps> = ({
       <div className="container">
         <Header title="PINAC" clearChat={startNewChat} />
         <div className="chat-container">
-          <StopContext.Provider value={{ stop, setStop }}>
             <div className="msg-box">
-              {welcomeBox}
-              {chatHistory}
+              {state.chatHistory.length === 0 ? (
+                <div className="welcome-text-row">
+                <div className="welcome-text">
+                  Hello,
+                  <br />
+                  How can I help you today?
+                </div>
+              </div>
+              ) : null}
+              {state.chatHistory}
               <div ref={scrollRef} />
             </div>
-          </StopContext.Provider>
+          
 
           <div className="input-box">
             <div
@@ -214,7 +189,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     />
                   </button>
                 ) : (
-                  <button onClick={() => setStop(true)} className="stop-icon">
+                  <button onClick={() => dispatch({ type: "SET_STOP", stop: true })} className="stop-icon">
                     <FaRegStopCircle size={25} color={"gray"} />
                   </button>
                 )}

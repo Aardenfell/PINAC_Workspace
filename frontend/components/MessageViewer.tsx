@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { MarkdownStyle } from "../components/MarkdownStyle";
 import { EmailComposeBox } from "../components/EmailComposeBox";
 import { ScheduleViewer } from "../components/ScheduleViewer";
-import { useStopContext } from "./context_file";
+import { useChatContext } from "./context_file";
 import "./style/MessageViewer.css";
 
 // Icons
@@ -17,6 +17,7 @@ interface ShowAiMessageProps {
 export const ShowAiMessage: React.FC<ShowAiMessageProps> = ({
   setButtonsDisabled,
 }) => {
+  const { dispatch } = useChatContext();
   const [message, setMessage] = useState(<AiLoader />);
 
   window.ipcRenderer.once("server-response", (_, response) => {
@@ -31,6 +32,7 @@ export const ShowAiMessage: React.FC<ShowAiMessageProps> = ({
           setButtonsDisabled={setButtonsDisabled}
         />
       );
+      dispatch({ type: "ADD_MESSAGE", message: <AiMessage response={`${text}\n${subject}\n\n${body}`} setButtonsDisabled={setButtonsDisabled} /> });
       // } else if (response["response"]["type"] === "schedule") {
       //   setMessage(<ScheduleMessage schedule={response[1]} />);
     } else {
@@ -40,6 +42,7 @@ export const ShowAiMessage: React.FC<ShowAiMessageProps> = ({
           setButtonsDisabled={setButtonsDisabled}
         />
       );
+      dispatch({ type: "ADD_MESSAGE", message: <AiMessage response={response["response"]["content"]} setButtonsDisabled={setButtonsDisabled} /> });
     }
   });
   return <>{message}</>;
@@ -88,7 +91,7 @@ interface AiMessageProps {
 
 export const AiMessage: React.FC<AiMessageProps> = (props) => {
   const { setButtonsDisabled } = props;
-  const { stop, setStop } = useStopContext();
+  const { state, dispatch  } = useChatContext();
   const [isAvatarVisible, setIsAvatarVisible] = useState(
     window.innerWidth > 576
   ); // Initial state based on window size
@@ -108,9 +111,9 @@ export const AiMessage: React.FC<AiMessageProps> = (props) => {
 
   useEffect(() => {
     if (currentIndex >= props.response.length - 5) setButtonsDisabled(false);
-    if (stop) {
+    if (state.stop) {
       setButtonsDisabled(false);
-      setStop(false);
+      dispatch({ type: "SET_STOP", stop: false});
     } else if (currentIndex < props.response.length) {
       const timeout = setTimeout(() => {
         setCurrentText((prevText) => prevText + props.response[currentIndex]);

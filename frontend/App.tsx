@@ -5,6 +5,7 @@ import { HomePage } from "./pages/HomePage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { AboutPage } from "./pages/AboutPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { ChatProvider, ChatContext } from "./components/context_file";
 import "./App.css";
 
 const App = () => {
@@ -27,15 +28,15 @@ const App = () => {
 
   //
   // Setting the conversation bubbles
-  const [chatHistory, setChatHistory] = useState<JSX.Element[]>([]);
+  // const [chatHistory, setChatHistory] = useState<JSX.Element[]>([]);
 
-  const addMessageToChatHistory = (newMessage: JSX.Element) => {
-    setChatHistory((prevChatHistory) => [...prevChatHistory, newMessage]);
-  };
+  // const addMessageToChatHistory = (newMessage: JSX.Element) => {
+  //   setChatHistory((prevChatHistory) => [...prevChatHistory, newMessage]);
+  // };
 
-  const clearChatHistory = () => {
-    setChatHistory([]);
-  };
+  // const clearChatHistory = () => {
+  //   setChatHistory([]);
+  // };
 
   //
   // Check if Logged In otherwise redirect to login
@@ -63,17 +64,14 @@ const App = () => {
   };
 
   return (
+    <ChatProvider>
     <Router>
       <Routes>
         <Route
           path="/"
           element={
             isLoggedIn ? (
-              <HomePage
-                chatHistory={chatHistory}
-                addMessageToChatHistory={addMessageToChatHistory}
-                clearChatHistory={clearChatHistory}
-              />
+              <HomePage/>
             ) : (
               <LogInPage changeLogInStatus={changeLogInStatus} />
             )
@@ -84,6 +82,7 @@ const App = () => {
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
     </Router>
+    </ChatProvider>
   );
 };
 
